@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS predictions (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    match_id VARCHAR(50) NOT NULL,
+    team1_name VARCHAR(255),
+    team1_chance FLOAT,
+    team2_name VARCHAR(255),
+    team2_chance FLOAT,
+    predicted_winner VARCHAR(255),
+    tournament_name VARCHAR(255),
+    tournament_serie VARCHAR(255),
+    tournament_stage VARCHAR(255),
+    reasoning TEXT,
+    status VARCHAR(50) DEFAULT 'pending',
+    result VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_match (match_id),
+    INDEX idx_status (status),
+    INDEX idx_created (created_at)
+); 

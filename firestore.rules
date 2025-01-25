@@ -1,0 +1,101 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Проверка аутентификации
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Проверка владельца документа
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    // Правила для коллекции matches
+    match /matches/{matchId} {
+      allow read, write: if true;
+    }
+    
+    // Правила для коллекции system
+    match /system/{docId} {
+      allow read, write: if true;
+    }
+    
+    // Правила для коллекции predictions
+    match /predictions/{predictionId} {
+      allow read, list: if true;
+      allow write: if request.auth != null;
+    }
+    
+    // Правила для коллекции users
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+
+    // Правила для коллекции teams
+    match /teams/{teamId} {
+      allow read, write: if true;
+    }
+
+    // Правила для коллекции heroes
+    match /heroes/{heroId} {
+      allow read, write: if true;
+    }
+
+    // Правила для постов
+    match /posts/{postId} {
+      allow read: if true;
+      allow create: if isAuthenticated() && (
+        // Проверяем подписку только для постов с изображениями
+        !request.resource.data.hasImage || 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.subscription.plan != 'free'
+      );
+      allow update: if isAuthenticated() 
+        && (
+          // Разрешаем обновление только для массива likes
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['likes'])
+          || isOwner(resource.data.authorId)
+        );
+      allow delete: if isAuthenticated() && isOwner(resource.data.authorId);
+      
+      // Правила для комментариев
+      match /comments/{commentId} {
+        allow read: if true;
+        allow create: if isAuthenticated();
+        allow update, delete: if isAuthenticated() && isOwner(resource.data.authorId);
+      }
+    }
+
+    // Правила для лайков
+    match /likes/{likeId} {
+      allow read, list: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /futures_positions/{positionId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+    
+    match /user_balances/{balanceId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+      allow write: if request.auth != null && (
+        request.resource.data.userId == request.auth.uid ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+  }
+} 
